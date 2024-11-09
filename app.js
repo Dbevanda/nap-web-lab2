@@ -7,6 +7,32 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const indexRoutes = require("./routes/index");
 
+async function initializeDatabase() {
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(50) NOT NULL,
+      password VARCHAR(50) NOT NULL
+    );
+  `;
+
+  const insertAdminUserQuery = `
+    INSERT INTO users (username, password)
+    VALUES ('admin', 'password123')
+    ON CONFLICT DO NOTHING;
+  `;
+
+  try {
+    await pool.query(createTableQuery);
+    await pool.query(insertAdminUserQuery);
+    console.log("Database initialized successfully");
+  } catch (err) {
+    console.error("Error initializing database:", err);
+  }
+}
+
+initializeDatabase();
+
 const app = express();
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
