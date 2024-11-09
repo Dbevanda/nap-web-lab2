@@ -1,0 +1,4 @@
+{
+  "sqlInjectionEnabled": true,
+  "brokenAuthEnabled": false
+}

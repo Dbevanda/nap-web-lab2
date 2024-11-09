@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Vulnerability Management</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="admin">
+<h2>Vulnerability Management</h2>
+<form action="/admin/toggle-vulnerabilities" method="post">
+    <label for="sqlInjection">
+        <input type="checkbox" id="sqlInjection" name="sqlInjection" <%= sqlInjectionEnabled ? 'checked' : '' %>>
+        SQL Injection
+    </label>
+    <label for="brokenAuth">
+        <input type="checkbox" id="brokenAuth" name="brokenAuth" <%= brokenAuthEnabled ? 'checked' : '' %>>
+        Broken Authentication
+    </label>
+    <button type="submit">Save Changes</button>
+</form>
+</body>
+</html>

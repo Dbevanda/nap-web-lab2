@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="login">
+<h2>Login</h2>
+
+<!-- Display Message with Conditional Class -->
+<% if (message) { %>
+    <div class="message <%= messageType === 'success' ? 'message-success' : 'message-error' %>">
+        <p><%= message %></p>
+    </div>
+<% } %>
+
+<form action="/login" method="post">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
+
+    <% if (captcha) { %>
+        <label for="captcha">CAPTCHA:</label>
+        <img src="<%= captcha %>" alt="CAPTCHA Image" class="captcha-image">
+        <input type="text" id="captcha" name="captcha" placeholder="Enter CAPTCHA" required>
+    <% } %>
+
+    <button type="submit">Login</button>
+</form>
+</body>
+</html>
