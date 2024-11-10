@@ -10,99 +10,113 @@ function loadConfig() {
   return JSON.parse(data);
 }
 
+function generateQuery(config, username, password) {
+  if (config.sqlInjectionEnabled) {
+    return `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
+  }
+  return {
+    text: "SELECT * FROM users WHERE username = $1 AND password = $2",
+    values: [username, password],
+  };
+}
+
+function renderResponse(res, message, type = "error", captcha = null) {
+  res.render("login", { message, messageType: type, captcha });
+}
+
+function validateCaptcha(req, captchaInput) {
+  return captchaInput && captchaInput === req.session.captcha;
+}
+
 module.exports = (loginLimiter, pool) => {
   const router = express.Router();
-
   const MAX_LOGIN_ATTEMPTS = 3;
 
-  // Login page
   router.get("/login", (req, res) => {
     const config = loadConfig();
     const captcha = config.brokenAuthEnabled === false ? "/captcha" : null;
-    res.render("login", { message: null, captcha });
+    renderResponse(res, null, "info", captcha);
   });
 
-  // Generate CAPTCHA
   router.get("/captcha", (req, res) => {
     const captcha = svgCaptcha.create();
     req.session.captcha = captcha.text;
-    res.type("svg");
-    res.status(200).send(captcha.data);
+    res.type("svg").status(200).send(captcha.data);
   });
 
-  // Login functionality
   router.post("/login", loginLimiter, async (req, res) => {
     const { username, password, captcha } = req.body;
-
-    // Load the latest config settings
     const config = loadConfig();
-    const brokenAuthEnabled = config.brokenAuthEnabled;
+    req.session.loginAttempts = req.session.loginAttempts || 0;
 
-    if (!req.session.loginAttempts) {
-      req.session.loginAttempts = 0;
-    }
+    if (config.brokenAuthEnabled) {
+      try {
+        const usernameQuery = `SELECT * FROM users WHERE username = '${username}'`;
+        const usernameResult = await pool.query(usernameQuery);
 
-    if (!brokenAuthEnabled) {
-      // Only check CAPTCHA if brokenAuthEnabled is false
-      if (req.session.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
-        return res.render("login", {
-          message: "Too many failed login attempts. Please try again later.",
-          messageType: "error",
-          captcha: null,
-        });
+        if (usernameResult.rows.length === 0) {
+          return renderResponse(res, "Username not found. Please try again.");
+        }
+
+        const query = generateQuery(config, username, password);
+        const result = await pool.query(query);
+
+        if (result.rows.length > 0) {
+          req.session.loginAttempts = 0;
+          req.session.captcha = null;
+          return renderResponse(res, "Login successful!", "success");
+        }
+
+        // Incorrect password for the valid username
+        renderResponse(res, "Incorrect password. Please try again.");
+      } catch (err) {
+        console.error("Database error:", err);
+        renderResponse(res, "An error occurred. Please try again later.");
       }
-
-      if (!captcha || captcha !== req.session.captcha) {
-        req.session.loginAttempts++;
-        return res.render("login", {
-          message: "Incorrect CAPTCHA. Please try again.",
-          messageType: "error",
-          captcha: "/captcha",
-        });
-      }
-    }
-
-    let query;
-    if (config.sqlInjectionEnabled) {
-      console.log("Executing vulnerable query");
-      query = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
     } else {
-      console.log("Executing parameterized query");
-      query = {
-        text: "SELECT * FROM users WHERE username = $1 AND password = $2",
-        values: [username, password],
-      };
-    }
-
-    try {
-      const result = await pool.query(query);
-
-      if (result.rows.length > 0) {
-        req.session.loginAttempts = 0;
-        return res.render("login", {
-          message: "Login successful!",
-          messageType: "success",
-          captcha: null,
-        });
-      } else {
-        req.session.loginAttempts++;
-        const showCaptcha =
-          req.session.loginAttempts >= MAX_LOGIN_ATTEMPTS - 1
-            ? "/captcha"
-            : null;
-        return res.render("login", {
-          message: "Invalid login credentials. Please try again.",
-          messageType: "error",
-          captcha: showCaptcha,
-        });
+      // CAPTCHA and login attempts enforcement
+      if (req.session.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+        return renderResponse(
+          res,
+          "Too many failed login attempts. Please try again later."
+        );
       }
-    } catch (err) {
-      console.error("Database error:", err);
-      res.render("login", {
-        message: "An error occurred. Please try again later.",
-        messageType: "error",
-        captcha: null,
-      });
+
+      if (!validateCaptcha(req, captcha)) {
+        req.session.loginAttempts++;
+        return renderResponse(
+          res,
+          "Incorrect CAPTCHA. Please try again.",
+          "error",
+          "/captcha"
+        );
+      }
+
+      const query = generateQuery(config, username, password);
+
+      try {
+        const result = await pool.query(query);
+        if (result.rows.length > 0) {
+          req.session.loginAttempts = 0;
+          req.session.captcha = null;
+          return renderResponse(
+            res,
+            "Login successful!",
+            "success",
+            "/captcha"
+          );
+        }
+        req.session.loginAttempts++;
+        renderResponse(
+          res,
+          "Invalid login credentials. Please try again.",
+          "error",
+          "/captcha"
+        );
+      } catch (err) {
+        console.error("Database error:", err);
+        renderResponse(res, "An error occurred. Please try again later.");
+      }
     }
   });
 

@@ -8,7 +8,6 @@
 <body class="login">
 <h2>Login</h2>
 
-<!-- Display Message with Conditional Class -->
 <% if (message) { %>
     <div class="message <%= messageType === 'success' ? 'message-success' : 'message-error' %>">
         <p><%= message %></p>
