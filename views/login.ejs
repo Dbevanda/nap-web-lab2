@@ -15,6 +15,10 @@
 <% } %>
 
 <form action="/login" method="post">
+    <p>When <b>SQL injection is turned on</b>, if user inputs something like "admin' --" (in username) or "' OR 1=1 --" (in any field), query results are shown on the screen.</p>
+    <br/>
+    <p>When <b>Broken Auth is turned off</b>, user will have to pass CAPTCHA and will have restricted number of times (3) to try to log in before blocking page for 5 minutes.</p>
+    <br/>
     <label for="username">Username:</label>
     <input type="text" id="username" name="username" required>
 

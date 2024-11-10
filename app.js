@@ -16,15 +16,19 @@ async function initializeDatabase() {
     );
   `;
 
-  const insertAdminUserQuery = `
+  const insertAdminUsersQuery = `
     INSERT INTO users (username, password)
-    VALUES ('admin', 'password123')
-    ON CONFLICT DO NOTHING;
+    VALUES
+      ('admin', 'password123'),
+      ('ddbbdd', 'password456'),
+      ('3admin', '12345678'),
+      ('admin_4', 'Password')
+      ON CONFLICT DO NOTHING;
   `;
 
   try {
     await pool.query(createTableQuery);
-    await pool.query(insertAdminUserQuery);
+    await pool.query(insertAdminUsersQuery);
     console.log("Database initialized successfully");
   } catch (err) {
     console.error("Error initializing database:", err);

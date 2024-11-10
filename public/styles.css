@@ -102,6 +102,11 @@ button:hover {
     margin-bottom: 20px;
 }
 
+.login p {
+    font-size: smaller;
+    font-style: normal;
+}
+
 /* Admin Page */
 .admin h2 {
     margin-bottom: 20px;

@@ -64,7 +64,8 @@ module.exports = (loginLimiter, pool) => {
         if (result.rows.length > 0) {
           req.session.loginAttempts = 0;
           req.session.captcha = null;
-          return renderResponse(res, "Login successful!", "success");
+          res.json(result.rows);
+          //return renderResponse(res, "Login successful!", "success");
         }
 
         // Incorrect password for the valid username
